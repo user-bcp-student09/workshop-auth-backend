@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "github-official": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "X-MCP-Toolsets": "issues,repos,pull_requests",
+        "X-MCP-Readonly": "true"
+      }
+    }
+  }
+}

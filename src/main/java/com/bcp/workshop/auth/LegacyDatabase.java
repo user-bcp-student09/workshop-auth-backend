@@ -2,6 +2,7 @@ package com.bcp.workshop.auth;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.jboss.logging.Logger;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import java.sql.Statement;
 
 @ApplicationScoped
 public class LegacyDatabase {
+    private static final Logger LOG = Logger.getLogger(LegacyDatabase.class);
     private static final String DB_URL = System.getenv().getOrDefault("AUTH_DB_URL", "jdbc:sqlite:./data/workshop.db");
 
     @PostConstruct
@@ -24,7 +26,7 @@ public class LegacyDatabase {
                 statement.executeUpdate("INSERT OR IGNORE INTO legacy_users(username,password,display_name,role) VALUES ('trainer','Trainer123!','Workshop Trainer','TRAINER')");
             }
         } catch (Exception error) {
-            error.printStackTrace();
+            LOG.error("Authentication database initialization failed");
         }
     }
 
@@ -37,7 +39,7 @@ public class LegacyDatabase {
                 return new UserRecord(result.getLong("id"), result.getString("username"), result.getString("display_name"), result.getString("role"));
             }
         } catch (Exception error) {
-            error.printStackTrace();
+            LOG.error("Authentication database query failed");
         }
         return null;
     }

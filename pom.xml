@@ -68,13 +68,27 @@
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>quarkus-build</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
                 <configuration>
+                    <environmentVariables>
+                        <AUTH_DB_URL>jdbc:sqlite:${project.build.directory}/auth-characterization.db</AUTH_DB_URL>
+                        <AUTH_TOKEN_SECRET>Fictional-Only-Token-Key-2026-32-Bytes</AUTH_TOKEN_SECRET>
+                    </environmentVariables>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <test.maven.home>${maven.home}</test.maven.home>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

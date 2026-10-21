@@ -22,7 +22,7 @@ Campos del body JSON:
 |---|---|---|---|
 | username | string | Si | Usuario de login. Si viene nulo, vacio o en blanco, responde 400. |
 | password | string | Si | Contrasena del usuario. Si viene nula, vacia o en blanco, responde 400. |
-| client | string | No | Campo aceptado por el contrato de entrada, pero no participa en la logica de autenticacion actual. |
+| client | string | Si | Obligatorio y no blanco. Se valida despues de username/password, antes de consultar credenciales; se conserva exactamente, sin recorte. No implica autorizacion del cliente. |
 
 Ejemplo JSON real y completo:
 
@@ -42,7 +42,7 @@ Campos del body JSON:
 
 | campo | tipo | descripcion |
 |---|---|---|
-| token | string | Token generado con la logica actual (Base64 de username, role, exp y secreto). |
+| token | string | Token firmado no JWT: v1.payload.signature, Base64url sin padding y HMAC-SHA-256 sobre v1.payload. Payload contiene sub, client, iat y exp; no contiene el secreto. |
 | expiresIn | integer | Tiempo de expiracion expresado en segundos (valor fijo actual: 3600). |
 | user | object | Datos del usuario autenticado. |
 | user.username | string | Username persistido del usuario autenticado. |
@@ -50,11 +50,11 @@ Campos del body JSON:
 | user.role | string | Rol persistido del usuario (ejemplo: STUDENT o TRAINER). |
 | debug | string | Marca de flujo legacy actual. |
 
-Ejemplo JSON real y completo:
+Ejemplo JSON de respuesta (token simbolico, no reutilizable):
 
 ```json
 {
-  "token": "c3R1ZGVudHxTVFVERU5UfDE3OTI0ODY5NTh8V09SS1NIT1BfU0VDUkVUXzIwMjY=",
+  "token": "v1.<payload>.<signature>",
   "expiresIn": 3600,
   "user": {
     "username": "student",
@@ -74,6 +74,8 @@ Cuando ocurre:
 - Request nulo.
 - username nulo, vacio o en blanco.
 - password nula, vacia o en blanco.
+- client ausente, nulo, vacio, blanco o no string; responde `Client is required`.
+- Precedencia: request, username, password y finalmente client.
 
 Ejemplos de cuerpo:
 
@@ -87,6 +89,10 @@ Ejemplos de cuerpo:
 
 ```json
 {"message":"Password is required"}
+```
+
+```json
+{"message":"Client is required"}
 ```
 
 Codigo: 401 Unauthorized
@@ -106,6 +112,8 @@ Codigo: 500 Internal Server Error
 Cuando ocurre:
 
 - Se lanza una excepcion no controlada durante el flujo de login.
+- Tambien cuando la construccion de respuesta supera la tolerancia temporal
+  de 1 segundo: `Token response timing failed`, sin campos de exito.
 
 Ejemplo de cuerpo:
 
@@ -122,8 +130,17 @@ Pregunta abierta:
 
 ### 6) Notas de seguridad relevantes
 
-- El token actual no es JWT firmado; se construye como Base64 de datos concatenados con secreto embebido y expiracion de 3600 segundos.
-- La respuesta de error 500 expone detalles internos (mensaje y clase de excepcion).
+- El token actual es firmado pero no JWT ni cifrado; requiere `AUTH_TOKEN_SECRET`
+  explicito al arrancar, sin fallback en ningun entorno. El generador legacy
+  fue retirado; no hay aceptacion dual ni nuevo endpoint de validacion.
+- `sub` es el username persistido y `client` el texto validado recibido;
+  `iat`/`exp` son enteros Unix en segundos y `exp - iat = 3600`.
+- En la frontera de respuesta `abs(expiresIn - (exp - now)) <= 1`;
+  la latencia de red no forma parte de esa medida. La verificacion rechaza
+  `now >= exp` sin periodo de gracia.
+- El 500 conserva mensaje y clase de excepcion para fallos no sensibles,
+  con Unknown error si no hay mensaje. Se ocultan password, secreto y token
+  emitido conocidos si aparecen en el mensaje; no se registran trazas arbitrarias.
 - CORS esta habilitado de forma permisiva en configuracion.
 
 ## Endpoint: GET /q/health
@@ -215,4 +232,6 @@ Pregunta abierta:
 - src/main/java/com/bcp/workshop/auth/AuthResource.java
 - src/main/java/com/bcp/workshop/auth/LoginRequest.java
 - src/main/java/com/bcp/workshop/auth/LegacyDatabase.java
-- src/main/java/com/bcp/workshop/auth/LegacyTokenUtil.java
+- src/main/java/com/bcp/workshop/auth/TokenService.java
+- src/main/java/com/bcp/workshop/auth/TokenConfiguration.java
+- src/main/java/com/bcp/workshop/auth/AuthService.java

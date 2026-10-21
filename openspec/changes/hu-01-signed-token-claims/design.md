@@ -137,6 +137,17 @@ Alternativas: omitir todos los logs oculta fallos; loguear y redactar despues no
 
 Esta es la secuencia de diseno, no un `tasks.md` ni autorizacion para ejecutar cambios funcionales.
 
+### Prerrequisito de build autorizado durante la implementacion
+
+La prueba de arranque de laboratorio detecto que `quarkus:dev` omitia el
+modulo porque quarkus-maven-plugin no tenia el goal build enlazado. El
+solicitante autorizo el ajuste minimo el 2026-10-21: agregar una ejecucion
+del goal build en la fase package, sin desactivar enforceBuildGoal ni otros
+controles. Esto permite el arranque documentado y el empaquetado por el
+ciclo Maven normal, sin dependencias, cambios de contratos o secretos de build.
+El grupo 6 debe repetir las pruebas reales de laboratorio y JAR antes de
+considerar resuelto el bloqueo; el grupo 7 conserva sus gates completos.
+
 ### Antes de modificar generacion o flujo de login
 
 Ampliar la caracterizacion y obtener una ejecucion verde sobre el codigo actual:
